@@ -1,0 +1,98 @@
+#!/bin/bash
+
+#################### 防止程序重复执行 #############################
+
+app=${0##*/}
+
+if [ -f /var/run/$app.pid ]
+then
+    echo "The Process is Running! (Exit)"
+    exit
+else
+    touch /var/run/$app.pid
+fi
+
+#################### 变量 #################### 
+
+IFS=$(echo "\n\b")
+
+IP=192.168.211.41
+PORT=23
+USER=wxftpuser
+PASS=wxftpuser
+OUTPUT=/video/output
+
+#################### 函数 #################### 
+
+function ExitProcess {
+    exec 6>&-
+    rm /var/run/$app.pid
+    rm $tmp_fifofile
+    exit 0
+}
+
+function inspect {
+    lsof $1
+    status=$(echo $?)
+}
+
+function ftpup {
+		
+inspect $OUTPUT/$1
+if [ $status -eq 0 ]
+then
+	echo "file is transfering!"
+	return 0
+fi
+
+ftp -n -d -v <<!
+open $IP $PORT
+user $USER $PASS
+binary
+cd wmv入xcut
+lcd $OUTPUT
+prompt
+put $1
+close
+bye
+!
+
+}
+
+################### 创建FIFO文件 ##################################
+
+tmp_fifofile="/dev/shm/$$.fifo"
+mkfifo $tmp_fifofile
+exec 6<>$tmp_fifofile
+
+################### 设置进程上限 ##################################
+thread=1
+
+for((i=0;i<$thread;i++));
+do
+    echo
+done>&6
+################### 信号处理 ##################################
+
+trap ExitProcess SIGINT SIGTERM SIGQUIT
+
+################### 程序主体 ######################################
+
+
+for f in `ls $OUTPUT`
+do
+    read -u6
+    {
+        ftpup "$f" &&{
+            echo "$f Upload Success!!"
+	    rm "$OUTPUT/$f"
+        }||{
+            echo "$f Upload Failed!!"
+        }
+        echo >&6
+    }&
+done
+
+wait
+
+ExitProcess

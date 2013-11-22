@@ -1,0 +1,98 @@
+#!/bin/bash
+
+#################### 防止程序重复执行 #############################
+
+app=${0##*/}
+
+if [ -f /var/run/$app.pid ]
+then
+    echo "The Process is Running! (Exit)"
+    exit
+else
+    touch /var/run/$app.pid
+fi
+
+################### 程序函数 ######################################
+
+function ExitProcess {
+    exec 6>&-
+    rm /var/run/$app.pid
+    rm $tmp_fifofile
+    exit 0
+}
+
+function wmv {
+    ffmpeg -y -i "$1" -vcodec wmv2 -s 720x576 -r 25 -vb 2000k -acodec wmav2 -ac 2 -ar 44100 -ab 128k "$2"
+}
+
+function wmvhd {
+    ffmpeg -y -i "$1" -vcodec wmv2 -s 1920x1080 -r 25 -vb 8000k -acodec wmav2 -ac 2 -ar 44100 -ab 256k "$2"
+}
+
+function inspect {
+    lsof $1
+    status=$(echo $?)
+}
+
+# 核心转码函数
+function encoder {    
+    
+    file=$1
+    filename=${file%.*}
+    filetype=${file##*.}
+
+    # 检查文件是否正在上传
+    inspect /video/input/$file
+    if [ $status -eq 0 ]
+    then
+        echo "$file is uploading..."
+	return
+    fi
+
+    # 开始转码
+    mv "/video/input/$file" "/vtmp/$file"
+    wmv "/vtmp/$file" "/vtmp/$filename.tmp.wmv"
+
+    # 文件迁移
+    mv "/vtmp/$filename.tmp.wmv" "/video/output/$filename.wmv"
+    
+    # 删除源视频
+    rm "/vtmp/$file"
+
+}
+
+################### 创建FIFO文件 ##################################
+
+tmp_fifofile="/dev/shm/$$.fifo"
+mkfifo $tmp_fifofile
+exec 6<>$tmp_fifofile
+
+################### 信号处理 ##################################
+
+trap ExitProcess SIGINT SIGTERM SIGQUIT
+
+################### 程序主体 ######################################
+
+thread=3
+
+for((i=0;i<$thread;i++));
+do
+    echo
+done>&6
+
+for f in `ls /video/input/`
+do
+    read -u6
+    {
+        encoder $f &&{
+            echo "$f finished"
+        }||{
+            echo "$f error"
+        }
+        echo >&6
+    }&
+done
+
+wait
+
+ExitProcess
