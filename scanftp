@@ -26,8 +26,8 @@ OUTPUT=/video/output
 
 function ExitProcess {
     exec 6>&-
-    rm /var/run/$app.pid
-    rm $tmp_fifofile
+    rm "/var/run/$app.pid"
+    rm "$tmp_fifofile"
     exit 0
 }
 
