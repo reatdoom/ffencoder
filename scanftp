@@ -14,13 +14,14 @@ fi
 
 #################### 变量 #################### 
 
-IFS=$(echo "\n\b")
+IFS=$(echo -ne "\n\b")
 
 IP=192.168.211.41
 PORT=23
 USER=wxftpuser
 PASS=wxftpuser
 OUTPUT=/video/output
+SUCC="226 Transfer complete."
 
 #################### 函数 #################### 
 
@@ -28,6 +29,7 @@ function ExitProcess {
     exec 6>&-
     rm "/var/run/$app.pid"
     rm "$tmp_fifofile"
+    rm "$pid_fifo"
     exit 0
 }
 
@@ -52,7 +54,7 @@ binary
 cd wmv入xcut
 lcd $OUTPUT
 prompt
-put $1
+put "$1"
 close
 bye
 !
@@ -62,7 +64,9 @@ bye
 ################### 创建FIFO文件 ##################################
 
 tmp_fifofile="/dev/shm/$$.fifo"
+pid_fifo="/dev/shm/$$_cpid.fifo"
 mkfifo $tmp_fifofile
+mkfifo $pid_fifo
 exec 6<>$tmp_fifofile
 
 ################### 设置进程上限 ##################################
@@ -83,14 +87,24 @@ for f in `ls $OUTPUT`
 do
     read -u6
     {
-        ftpup "$f" &&{
-            echo "$f Upload Success!!"
-	    rm "$OUTPUT/$f"
-        }||{
-            echo "$f Upload Failed!!"
-        }
+        read <$pid_fifo cpid
+        ftpup "$f" | tee $cpid.log >/dev/null
+        RESULT=`grep -l "${SUCC}" $cpid.log`
+        rm -rf $cpid.log
+
+        if [ "${RESULT}" = "$cpid.log" ]
+        then
+            echo "$f 上传成功" >>/var/log/scanftp.log
+	        rm "$OUTPUT/$f"
+        else
+            echo "$f 上传失败" >>/var/log/scanftp.log
+        fi
+
         echo >&6
     }&
+
+    sleep 1
+    echo $!>$pid_fifo
 done
 
 wait

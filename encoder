@@ -45,7 +45,7 @@ function encoder {
     filetype=${file##*.}
 
     # 检查文件是否正在上传
-    inspect /video/input/$file
+    inspect "/video/input/$file"
     if [ $status -eq 0 ]
     then
         echo "$file is uploading..."
@@ -76,20 +76,19 @@ trap ExitProcess SIGINT SIGTERM SIGQUIT
 
 ################### 程序主体 ######################################
 
-thread=3
+thread=6
 
 for((i=0;i<$thread;i++));
 do
     echo
 done>&6
 
-
-while ture
+while true
 do
-    sleep 2
+    sleep 5
     read -u6
 
-    $f=$(ls -t /video/input/|tail -n1)
+    f=$(ls -t /video/input/|tail -n1)
 
     if [ -z $f ]
     then
