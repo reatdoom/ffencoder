@@ -4,6 +4,9 @@
 
 app=${0##*/}
 
+SAVEIFS=$IFS
+IFS=$(echo -ne "\n\b")
+
 if [ -f /var/run/$app.pid ]
 then
     echo "The Process is Running! (Exit)"
@@ -80,9 +83,21 @@ do
     echo
 done>&6
 
-for f in `ls /video/input/`
+
+while ture
 do
+    sleep 2
     read -u6
+
+    $f=$(ls -t /video/input/|tail -n1)
+
+    if [ -z $f ]
+    then
+        echo "NO FILES !!!!"
+        echo >&6
+        continue
+    fi
+
     {
         encoder $f &&{
             echo "$f finished"
