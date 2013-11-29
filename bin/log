@@ -1,0 +1,5 @@
+#!/bin/bash
+
+URL="http://10.78.92.120/api.php"
+
+curl -d "$@" $URL

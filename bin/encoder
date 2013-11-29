@@ -44,16 +44,7 @@ function encoder {
     filename=${file%.*}
     filetype=${file##*.}
 
-    # 检查文件是否正在上传
-    inspect "/video/input/$file"
-    if [ $status -eq 0 ]
-    then
-        echo "$file is uploading..."
-	return
-    fi
-
     # 开始转码
-    mv "/video/input/$file" "/vtmp/$file"
     wmv "/vtmp/$file" "/vtmp/$filename.tmp.wmv"
 
     # 文件迁移
@@ -97,11 +88,29 @@ do
         continue
     fi
 
+    # 检查文件是否正在上传
+    inspect "/video/input/$f"
+    if [ $status -eq 0 ]
+    then
+        echo "$f is uploading..."
+        echo >&6
+	    continue
+    fi
+
+    mv "/video/input/$f" "/vtmp/$f"
+
+    fn=${f%.*}
+    ft=${f##*.}
+
+    ./log "name=$fn&type=$ft&action=insert"
+
     {
         encoder $f &&{
             echo "$f finished"
+            ./log "name=$fn&status=1&action=update"
         }||{
             echo "$f error"
+            ./log "name=$fn&status=5&action=update"
         }
         echo >&6
     }&
