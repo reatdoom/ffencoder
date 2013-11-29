@@ -94,9 +94,11 @@ do
 
         if [ "${RESULT}" = "$cpid.log" ]
         then
+            echo "$f 上传成功"
             echo "$f 上传成功" >>/var/log/scanftp.log
 	        rm "$OUTPUT/$f"
         else
+            echo "$f 上传失败"
             echo "$f 上传失败" >>/var/log/scanftp.log
         fi
 
