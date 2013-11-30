@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# 转码视频源目录
+SRCDIR=/video/input
+
+# 转码输出目录
+DSTDIR=/video/ouput
+
+# 转码目录
+ETMP=/vtmp
+
+# FTP配置
+
+IP=192.168.1.222
+PORT=23
+USER="ftp"
+PASS="ftp"
+# ftp上的目录
+FTPDIR="video"
+# 上传成功显示的消息，用于判断是否上传成功
+SUCC="226 Transfer complete."
+
+# Server 用于接收转码状态
+
+URL="http://127.0.0.1/api.php"
