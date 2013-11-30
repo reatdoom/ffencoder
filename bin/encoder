@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ffconfig
+
 #################### 防止程序重复执行 #############################
 
 app=${0##*/}
@@ -45,14 +47,25 @@ function encoder {
     filetype=${file##*.}
 
     # 开始转码
-    wmv "/vtmp/$file" "/vtmp/$filename.tmp.wmv"
+    wmv "$ETMP/$file" "$ETMP/$filename.tmp.wmv"
 
-    # 文件迁移
-    mv "/vtmp/$filename.tmp.wmv" "/video/output/$filename.wmv"
+    if [ $? -eq 0 ]
+    then
+
+        # 文件迁移
+        mv "$ETMP/$filename.tmp.wmv" "$DSTDIR/$filename.wmv"
+
+        # 删除源视频
+        rm "$ETMP/$file"
+
+        echo "$f finished"
+        ./log "name=$fn&status=2&action=update"
     
-    # 删除源视频
-    rm "/vtmp/$file"
-
+    else
+        echo "$f error"
+        ./log "name=$fn&status=5&action=update"
+    fi
+    
 }
 
 ################### 创建FIFO文件 ##################################
@@ -79,7 +92,7 @@ do
     sleep 5
     read -u6
 
-    f=$(ls -t /video/input/|tail -n1)
+    f=$(ls -t $SRCDIR/|tail -n1)
 
     if [ -z $f ]
     then
@@ -89,7 +102,7 @@ do
     fi
 
     # 检查文件是否正在上传
-    inspect "/video/input/$f"
+    inspect "$SRCDIR/$f"
     if [ $status -eq 0 ]
     then
         echo "$f is uploading..."
@@ -97,7 +110,7 @@ do
 	    continue
     fi
 
-    mv "/video/input/$f" "/vtmp/$f"
+    mv "$SRCDIR/$f" "$ETMP/$f"
 
     fn=${f%.*}
     ft=${f##*.}
@@ -105,13 +118,7 @@ do
     ./log "name=$fn&type=$ft&action=insert"
 
     {
-        encoder $f &&{
-            echo "$f finished"
-            ./log "name=$fn&status=1&action=update"
-        }||{
-            echo "$f error"
-            ./log "name=$fn&status=5&action=update"
-        }
+        encoder $f
         echo >&6
     }&
 done

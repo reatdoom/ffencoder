@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ffconfig
+
 #################### 防止程序重复执行 #############################
 
 app=${0##*/}
@@ -15,13 +17,6 @@ fi
 #################### 变量 #################### 
 
 IFS=$(echo -ne "\n\b")
-
-IP=192.168.211.41
-PORT=23
-USER=wxftpuser
-PASS=wxftpuser
-OUTPUT=/video/output
-SUCC="226 Transfer complete."
 
 #################### 函数 #################### 
 
@@ -51,8 +46,8 @@ ftp -n -d -v <<!
 open $IP $PORT
 user $USER $PASS
 binary
-cd wmv入xcut
-lcd $OUTPUT
+cd $FTPDIR
+lcd $DSTDIR
 prompt
 put "$1"
 close
@@ -94,12 +89,12 @@ do
 
         if [ "${RESULT}" = "$cpid.log" ]
         then
-            echo "$f 上传成功"
             echo "$f 上传成功" >>/var/log/scanftp.log
+            ./log "name=${f%.*}&status=3&action=update"
 	        rm "$OUTPUT/$f"
         else
-            echo "$f 上传失败"
             echo "$f 上传失败" >>/var/log/scanftp.log
+            ./log "name=${f%.*}&status=6&action=update"
         fi
 
         echo >&6

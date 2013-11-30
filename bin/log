@@ -1,5 +1,5 @@
 #!/bin/bash
 
-URL="http://10.78.92.120/api.php"
+source ffconfig
 
-curl -d "$@" $URL
+curl -m 6 -d "$@" $URL
